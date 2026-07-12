@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Blueprint, jsonify, request
 
 from .db import SessionLocal
-from .models import Host, Container, HostStat, Command, now
+from .models import Host, Container, HostStat, Command, Image, Volume, Network, now
 
 api_bp = Blueprint("api", __name__)
 
@@ -53,10 +53,10 @@ def report():
             )
         )
 
-    seen_ids = set()
+    seen_container_ids = set()
     for c in payload.get("containers", []):
         row_id = f"{host_id}:{c.get('id')}"
-        seen_ids.add(row_id)
+        seen_container_ids.add(row_id)
         existing = db.query(Container).get(row_id)
         ports = ",".join(c.get("ports", []))
         if existing:
@@ -82,6 +82,76 @@ def report():
                     updated_at=now(),
                 )
             )
+    # containers absent from this report (e.g. `docker rm`'d since the last cycle) are gone for
+    # good, unlike a stopped-but-still-present container which is reported with status="exited"
+    db.query(Container).filter(
+        Container.host_id == host_id, ~Container.id.in_(seen_container_ids or [""])
+    ).delete(synchronize_session=False)
+
+    seen_image_ids = set()
+    for img in payload.get("images", []):
+        row_id = f"{host_id}:{img.get('id')}"
+        seen_image_ids.add(row_id)
+        existing = db.query(Image).get(row_id)
+        tags = ",".join(img.get("tags", []))
+        if existing:
+            existing.tags = tags
+            existing.size_mb = img.get("size_mb")
+            existing.dangling = 1 if img.get("dangling") else 0
+            existing.updated_at = now()
+        else:
+            db.add(
+                Image(
+                    id=row_id,
+                    host_id=host_id,
+                    image_id=img.get("id"),
+                    tags=tags,
+                    size_mb=img.get("size_mb"),
+                    dangling=1 if img.get("dangling") else 0,
+                    updated_at=now(),
+                )
+            )
+    db.query(Image).filter(Image.host_id == host_id, ~Image.id.in_(seen_image_ids or [""])).delete(
+        synchronize_session=False
+    )
+
+    seen_volume_ids = set()
+    for v in payload.get("volumes", []):
+        row_id = f"{host_id}:{v.get('name')}"
+        seen_volume_ids.add(row_id)
+        existing = db.query(Volume).get(row_id)
+        if existing:
+            existing.driver = v.get("driver")
+            existing.updated_at = now()
+        else:
+            db.add(Volume(id=row_id, host_id=host_id, name=v.get("name"), driver=v.get("driver"), updated_at=now()))
+    db.query(Volume).filter(Volume.host_id == host_id, ~Volume.id.in_(seen_volume_ids or [""])).delete(
+        synchronize_session=False
+    )
+
+    seen_network_ids = set()
+    for n in payload.get("networks", []):
+        row_id = f"{host_id}:{n.get('name')}"
+        seen_network_ids.add(row_id)
+        existing = db.query(Network).get(row_id)
+        if existing:
+            existing.driver = n.get("driver")
+            existing.scope = n.get("scope")
+            existing.updated_at = now()
+        else:
+            db.add(
+                Network(
+                    id=row_id,
+                    host_id=host_id,
+                    name=n.get("name"),
+                    driver=n.get("driver"),
+                    scope=n.get("scope"),
+                    updated_at=now(),
+                )
+            )
+    db.query(Network).filter(Network.host_id == host_id, ~Network.id.in_(seen_network_ids or [""])).delete(
+        synchronize_session=False
+    )
 
     db.commit()
     return jsonify({"ok": True})
@@ -100,7 +170,7 @@ def get_commands():
     )
     return jsonify(
         [
-            {"id": c.id, "action": c.action, "container_id": c.container_id}
+            {"id": c.id, "action": c.action, "container_id": c.container_id, "payload": c.payload}
             for c in pending
         ]
     )

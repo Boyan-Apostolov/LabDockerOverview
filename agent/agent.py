@@ -85,6 +85,41 @@ def collect_containers(client):
     return result
 
 
+def collect_images(client):
+    result = []
+    for img in client.images.list(all=True):
+        try:
+            result.append({
+                "id": img.id.split(":")[-1][:12],
+                "tags": img.tags,
+                "size_mb": round((img.attrs.get("Size") or 0) / (1024 ** 2)),
+                "dangling": len(img.tags) == 0,
+            })
+        except Exception as e:
+            log(f"skipping image {img.id}: {e}")
+    return result
+
+
+def collect_volumes(client):
+    result = []
+    for v in client.volumes.list():
+        try:
+            result.append({"name": v.name, "driver": v.attrs.get("Driver", "")})
+        except Exception as e:
+            log(f"skipping volume: {e}")
+    return result
+
+
+def collect_networks(client):
+    result = []
+    for n in client.networks.list():
+        try:
+            result.append({"name": n.name, "driver": n.attrs.get("Driver", ""), "scope": n.attrs.get("Scope", "")})
+        except Exception as e:
+            log(f"skipping network: {e}")
+    return result
+
+
 def send_report(server, token, host_id, payload):
     resp = requests.post(
         f"{server}/api/v1/report",
@@ -97,12 +132,34 @@ def send_report(server, token, host_id, payload):
 
 LOG_TAIL_LINES = 200
 LOG_MAX_CHARS = 20000
+EXEC_MAX_CHARS = 20000
 
+# remove_* actions target an image/volume/network name rather than a container, so they're
+# dispatched here before the generic container lookup below
+def run_command(client, cmd):
+    action = cmd["action"]
+    target = cmd["container_id"]
 
-def run_command(container, action):
+    if action == "remove_image":
+        client.images.remove(target, force=False)
+        return None
+    if action == "remove_volume":
+        client.volumes.get(target).remove()
+        return None
+    if action == "remove_network":
+        client.networks.get(target).remove()
+        return None
+
+    container = client.containers.get(target)
     if action == "logs":
         raw = container.logs(tail=LOG_TAIL_LINES, timestamps=True)
         return raw.decode("utf-8", errors="replace")[-LOG_MAX_CHARS:]
+    if action == "exec":
+        command = cmd.get("payload") or "true"
+        exit_code, output = container.exec_run(["sh", "-c", command], demux=False)
+        text = output.decode("utf-8", errors="replace") if output else ""
+        return f"$ {command}\n(exit {exit_code})\n{text}"[-EXEC_MAX_CHARS:]
+
     getattr(container, action)()
     return None
 
@@ -119,8 +176,7 @@ def poll_commands(server, token, host_id, client):
         status = "success"
         output = None
         try:
-            container = client.containers.get(cmd["container_id"])
-            output = run_command(container, cmd["action"])
+            output = run_command(client, cmd)
         except Exception as e:
             log(f"command {cmd['id']} ({cmd['action']}) failed: {e}")
             status = "failed"
@@ -151,6 +207,9 @@ def main():
                 "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "host_stats": collect_host_stats(),
                 "containers": collect_containers(client),
+                "images": collect_images(client),
+                "volumes": collect_volumes(client),
+                "networks": collect_networks(client),
             }
             send_report(args.server, args.token, args.host_id, payload)
             poll_commands(args.server, args.token, args.host_id, client)

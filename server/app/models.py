@@ -41,6 +41,39 @@ class Container(Base):
     updated_at = Column(DateTime, default=now)
 
 
+class Image(Base):
+    __tablename__ = "images"
+
+    id = Column(String, primary_key=True)  # f"{host_id}:{image_id}"
+    host_id = Column(String, ForeignKey("hosts.id"), nullable=False)
+    image_id = Column(String, nullable=False)
+    tags = Column(String)  # comma-separated
+    size_mb = Column(Float)
+    dangling = Column(Integer, default=0)  # 0/1 - no repo tags
+    updated_at = Column(DateTime, default=now)
+
+
+class Volume(Base):
+    __tablename__ = "volumes"
+
+    id = Column(String, primary_key=True)  # f"{host_id}:{name}"
+    host_id = Column(String, ForeignKey("hosts.id"), nullable=False)
+    name = Column(String, nullable=False)
+    driver = Column(String)
+    updated_at = Column(DateTime, default=now)
+
+
+class Network(Base):
+    __tablename__ = "networks"
+
+    id = Column(String, primary_key=True)  # f"{host_id}:{name}"
+    host_id = Column(String, ForeignKey("hosts.id"), nullable=False)
+    name = Column(String, nullable=False)
+    driver = Column(String)
+    scope = Column(String)
+    updated_at = Column(DateTime, default=now)
+
+
 class HostStat(Base):
     __tablename__ = "host_stats"
 
@@ -59,10 +92,11 @@ class Command(Base):
 
     id = Column(String, primary_key=True, default=gen_id)
     host_id = Column(String, ForeignKey("hosts.id"), nullable=False)
-    action = Column(String, nullable=False)  # restart | stop | start | logs
-    container_id = Column(String, nullable=False)
+    action = Column(String, nullable=False)  # restart | stop | start | logs | exec | remove_image | remove_volume | remove_network
+    container_id = Column(String, nullable=False)  # generic target id: container, image, volume, or network name
+    payload = Column(Text, nullable=True)  # e.g. the shell command string for the exec action
     status = Column(String, default="pending")  # pending | success | failed
-    result = Column(Text, nullable=True)  # e.g. log output for the logs action
+    result = Column(Text, nullable=True)  # e.g. log/exec output
     created_at = Column(DateTime, default=now)
     acked_at = Column(DateTime, nullable=True)
 

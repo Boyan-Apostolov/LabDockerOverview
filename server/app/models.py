@@ -60,6 +60,9 @@ class Volume(Base):
     host_id = Column(String, ForeignKey("hosts.id"), nullable=False)
     name = Column(String, nullable=False)
     driver = Column(String)
+    size_mb = Column(Float, nullable=True)
+    used_by = Column(String)  # comma-separated names of containers currently mounting it
+    docker_created_at = Column(String)  # raw ISO string as reported by Docker, display-only
     updated_at = Column(DateTime, default=now)
 
 

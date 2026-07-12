@@ -101,10 +101,34 @@ def collect_images(client):
 
 
 def collect_volumes(client):
+    try:
+        size_by_name = {
+            v.get("Name"): (v.get("UsageData") or {}).get("Size")
+            for v in (client.df().get("Volumes") or [])
+        }
+    except Exception as e:
+        log(f"docker df() failed, volume sizes unavailable this cycle: {e}")
+        size_by_name = {}
+
+    # Docker doesn't track "last used" anywhere - the closest real signal is which
+    # containers currently mount a volume, found by cross-referencing container mounts
+    used_by = {}
+    for c in client.containers.list(all=True):
+        for m in c.attrs.get("Mounts") or []:
+            if m.get("Type") == "volume":
+                used_by.setdefault(m.get("Name"), []).append(c.name)
+
     result = []
     for v in client.volumes.list():
         try:
-            result.append({"name": v.name, "driver": v.attrs.get("Driver", "")})
+            size = size_by_name.get(v.name)
+            result.append({
+                "name": v.name,
+                "driver": v.attrs.get("Driver", ""),
+                "size_mb": round(size / (1024 ** 2), 1) if size is not None else None,
+                "used_by": used_by.get(v.name, []),
+                "created_at": v.attrs.get("CreatedAt"),
+            })
         except Exception as e:
             log(f"skipping volume: {e}")
     return result

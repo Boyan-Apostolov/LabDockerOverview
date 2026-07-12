@@ -119,12 +119,27 @@ def report():
     for v in payload.get("volumes", []):
         row_id = f"{host_id}:{v.get('name')}"
         seen_volume_ids.add(row_id)
+        used_by = ",".join(v.get("used_by", []))
         existing = db.query(Volume).get(row_id)
         if existing:
             existing.driver = v.get("driver")
+            existing.size_mb = v.get("size_mb")
+            existing.used_by = used_by
+            existing.docker_created_at = v.get("created_at")
             existing.updated_at = now()
         else:
-            db.add(Volume(id=row_id, host_id=host_id, name=v.get("name"), driver=v.get("driver"), updated_at=now()))
+            db.add(
+                Volume(
+                    id=row_id,
+                    host_id=host_id,
+                    name=v.get("name"),
+                    driver=v.get("driver"),
+                    size_mb=v.get("size_mb"),
+                    used_by=used_by,
+                    docker_created_at=v.get("created_at"),
+                    updated_at=now(),
+                )
+            )
     db.query(Volume).filter(Volume.host_id == host_id, ~Volume.id.in_(seen_volume_ids or [""])).delete(
         synchronize_session=False
     )

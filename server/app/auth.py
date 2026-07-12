@@ -42,3 +42,19 @@ def set_admin_password(db, password):
 def check_admin_password(db, password):
     password_hash = get_setting(db, "admin_password_hash")
     return bool(password_hash) and check_password_hash(password_hash, password)
+
+
+LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "0.0.0.0", "[::1]"}
+
+
+def get_server_url(db):
+    return get_setting(db, "server_url")
+
+
+def set_server_url(db, url):
+    set_setting(db, "server_url", url.strip().rstrip("/"))
+
+
+def is_local_url(url):
+    hostname = url.split("://", 1)[-1].split("/", 1)[0].split(":")[0]
+    return hostname in LOCAL_HOSTNAMES

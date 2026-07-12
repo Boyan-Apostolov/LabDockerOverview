@@ -1,10 +1,10 @@
 #!/bin/sh
-# Installs and starts the homelab-dashboard agent as a Docker container.
+# Installs and starts the labdockeroverview agent as a Docker container.
 # Usage: curl -sSL http://<server>/install-agent.sh | sh -s -- --server https://yourserver:8080 --token <token> --host-id <host-id>
 
 set -e
 
-IMAGE="homelab-dashboard-agent:latest"
+IMAGE="labdockeroverview-agent:latest"
 INTERVAL="12"
 
 usage() {
@@ -49,13 +49,13 @@ fi
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
     echo "Note: image '$IMAGE' not found locally. Until a published image is available," >&2
-    echo "build it yourself from the homelab-dashboard repo, e.g.:" >&2
-    echo "  git clone <repo-url> && cd homelab-dashboard/agent && docker build -t $IMAGE ." >&2
+    echo "build it yourself from the labdockeroverview repo, e.g.:" >&2
+    echo "  git clone <repo-url> && cd labdockeroverview/agent && docker build -t $IMAGE ." >&2
     exit 1
 fi
 
 docker run -d \
-    --name homelab-agent \
+    --name labdockeroverview-agent \
     --restart unless-stopped \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e SERVER_URL="$SERVER" \
@@ -64,4 +64,4 @@ docker run -d \
     -e AGENT_INTERVAL="$INTERVAL" \
     "$IMAGE"
 
-echo "homelab-dashboard agent installed and running as host_id '$HOST_ID', reporting to $SERVER"
+echo "labdockeroverview agent installed and running as host_id '$HOST_ID', reporting to $SERVER"

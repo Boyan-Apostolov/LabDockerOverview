@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: server/Dockerfile
+    # On Linux, swap the two lines below for "network_mode: host" (and drop this ports:
+    # block) to let the Settings page auto-detect your real LAN IP for install commands.
+    # Leave as-is on Docker Desktop (Mac/Windows) — host networking isn't reachable there.
     ports:
       - "8080:8080"
     volumes:

@@ -1,12 +1,21 @@
+import ipaddress
 import os
 import re
 import secrets
+import socket
 
 from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session
 
 from .db import SessionLocal
 from .models import Host, Container, HostStat, Command, now
-from .auth import is_setup_complete, set_admin_password, check_admin_password
+from .auth import (
+    is_setup_complete,
+    set_admin_password,
+    check_admin_password,
+    get_server_url,
+    set_server_url,
+    is_local_url,
+)
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -37,6 +46,45 @@ def require_auth():
 def slugify(name):
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     return slug or "host"
+
+
+def detect_lan_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))  # no packet actually sent; just forces the OS to pick a real outbound interface
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
+# in bridge-mode Docker (the default here), the outbound-socket trick only sees the
+# container's own bridge IP, not the host's real LAN IP - filter that out rather than
+# confidently presenting a wrong-but-plausible-looking address
+def looks_container_internal(ip):
+    try:
+        return ipaddress.ip_address(ip) in ipaddress.ip_network("172.16.0.0/12")
+    except ValueError:
+        return False
+
+
+def auto_detected_url():
+    # if you're already browsing via a real address (e.g. from another device on the LAN),
+    # that's the ground truth - no guessing needed, and it beats any bridge-network guess
+    request_url = request.host_url.rstrip("/")
+    if not is_local_url(request_url):
+        return request_url
+
+    ip = detect_lan_ip()
+    if ip and not is_local_url(ip) and not looks_container_internal(ip):
+        return f"http://{ip}:8080"
+
+    return request_url
+
+
+def effective_server_url(db):
+    return get_server_url(db) or auto_detected_url()
 
 
 @dashboard_bp.route("/install-agent.sh")
@@ -180,7 +228,25 @@ def search():
 def settings():
     db = SessionLocal()
     host_rows = db.query(Host).order_by(Host.name.asc()).all()
-    return render_template("settings.html", hosts=host_rows, new_host=None, install_command=None)
+    server_url = get_server_url(db)
+    detected_url = auto_detected_url()
+    return render_template(
+        "settings.html",
+        hosts=host_rows,
+        new_host=None,
+        install_command=None,
+        server_url=server_url,
+        detected_url=detected_url,
+        detected_url_is_local=is_local_url(detected_url),
+    )
+
+
+@dashboard_bp.route("/settings/server-url", methods=["POST"])
+def update_server_url():
+    url = request.form.get("server_url", "").strip()
+    db = SessionLocal()
+    set_server_url(db, url)  # empty clears the override, falling back to auto-detect
+    return redirect(url_for("dashboard.settings"))
 
 
 @dashboard_bp.route("/settings/hosts", methods=["POST"])
@@ -203,12 +269,20 @@ def add_host():
     db.add(host)
     db.commit()
 
+    base_url = effective_server_url(db)
     install_command = (
-        f"curl -sSL {request.host_url.rstrip('/')}/install-agent.sh | sh -s -- "
-        f"--server {request.host_url.rstrip('/')} --token {agent_token} --host-id {host_id}"
+        f"curl -sSL {base_url}/install-agent.sh | sh -s -- "
+        f"--server {base_url} --token {agent_token} --host-id {host_id}"
     )
 
     host_rows = db.query(Host).order_by(Host.name.asc()).all()
     return render_template(
-        "settings.html", hosts=host_rows, new_host=host, install_command=install_command
+        "settings.html",
+        hosts=host_rows,
+        new_host=host,
+        install_command=install_command,
+        install_command_is_local=is_local_url(base_url),
+        server_url=get_server_url(db),
+        detected_url=auto_detected_url(),
+        detected_url_is_local=is_local_url(auto_detected_url()),
     )

@@ -1,15 +1,47 @@
 {% extends "base.html" %}
-{% block title %}Settings - Homelab Dashboard{% endblock %}
+{% block title %}Settings - LabDockerOverview{% endblock %}
 {% block content %}
 <h1>Settings</h1>
 
 {% if new_host %}
 <div class="card" style="margin-bottom: 1.5rem;">
   <h2>Host "{{ new_host.name }}" registered</h2>
+  {% if install_command_is_local %}
+  <div class="error">
+    This command points at "{{ server_url or detected_url }}", which only resolves to itself on
+    whatever machine runs it &mdash; it won't reach this server from elsewhere.
+    Set the real Server URL below (LAN IP, domain, or VPN address) and re-register the host.
+  </div>
+  {% endif %}
   <div class="muted">Run this on the target machine to install and connect the agent:</div>
   <div class="install-box">{{ install_command }}</div>
 </div>
 {% endif %}
+
+<h2>Server URL</h2>
+<div class="card" style="max-width: 480px; margin-bottom: 1.5rem;">
+  <p class="muted" style="margin-top: 0;">
+    The address other hosts on your network use to reach this dashboard &mdash; used when
+    generating agent install commands.
+  </p>
+  {% if not server_url %}
+  <div class="muted" style="margin-bottom: 0.75rem;">
+    Auto-detected as <span class="mono">{{ detected_url }}</span>{% if detected_url_is_local %} &mdash; this looks like a local address and won't be reachable from other hosts. Set it explicitly below.{% else %} and used automatically. Override below only if this is wrong (e.g. multiple network interfaces, a VPN/Tailscale address, or a domain name).{% endif %}
+  </div>
+  {% endif %}
+  <form method="post" action="{{ url_for('dashboard.update_server_url') }}">
+    <div style="margin-bottom: 0.75rem;">
+      <input type="text" name="server_url" placeholder="{{ detected_url }}" value="{{ server_url or '' }}" style="width: 100%;">
+    </div>
+    <button type="submit" class="primary">Save Server URL</button>
+  </form>
+  {% if server_url %}
+  <form method="post" action="{{ url_for('dashboard.update_server_url') }}" style="margin-top: 0.5rem;">
+    <input type="hidden" name="server_url" value="">
+    <button type="submit">Clear override (go back to auto-detect)</button>
+  </form>
+  {% endif %}
+</div>
 
 <h2>Registered hosts</h2>
 {% if not hosts %}

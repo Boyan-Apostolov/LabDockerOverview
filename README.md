@@ -1,4 +1,4 @@
-# Homelab Dashboard
+# LabDockerOverview
 
 **Status: early WIP, v1 in progress.**
 
@@ -40,12 +40,12 @@ Once a pre-built image is published, the server itself can also be run directly 
 cloning the repo:
 
 ```sh
-docker run -d -p 8080:8080 -v ./data:/data --name homelab-dashboard yourname/homelab-dashboard
+docker run -d -p 8080:8080 -v ./data:/data --name labdockeroverview yourname/labdockeroverview
 ```
 
 For now, `docker compose up -d` (building from source) is the primary install path.
 
 ## v1 scope
 
-Deliberately minimal: no auth beyond per-host tokens, no TLS termination (put it behind a
-reverse proxy if you need HTTPS), no multi-arch build matrix yet.
+Deliberately minimal: single shared admin password (set on first run), no TLS termination (put
+it behind a reverse proxy if you need HTTPS), no multi-arch build matrix yet.

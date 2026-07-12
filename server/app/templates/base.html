@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Homelab Dashboard{% endblock %}</title>
+<title>{% block title %}LabDockerOverview{% endblock %}</title>
 <style>
   :root {
     --bg: #0f1115;
@@ -251,7 +251,7 @@
 </head>
 <body>
 <nav>
-  <span class="brand">homelab</span>
+  <a class="brand" href="{{ url_for('dashboard.hosts') }}">LabDockerOverview</a>
   <span class="links">
     <a href="{{ url_for('dashboard.hosts') }}">Hosts</a>
     <a href="{{ url_for('dashboard.search') }}">Search</a>

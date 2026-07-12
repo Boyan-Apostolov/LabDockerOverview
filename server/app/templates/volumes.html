@@ -43,7 +43,7 @@
         {% if v.used_by %}
         <span class="muted" title="in use by {{ v.used_by }} - stop it first">can't remove</span>
         {% else %}
-        <form method="post" action="{{ url_for('dashboard.remove_volume', host_id=host.id, name=v.name) }}">
+        <form method="post" action="{{ url_for('dashboard.remove_volume', host_id=host.id, name=v.name) }}" data-confirm="Remove volume &quot;{{ v.name }}&quot;? This can't be undone.">
           <button type="submit" class="danger">Remove</button>
         </form>
         {% endif %}
@@ -77,7 +77,7 @@
         {% if n.name in ("bridge", "host", "none") %}
         <span class="muted">(built-in)</span>
         {% else %}
-        <form method="post" action="{{ url_for('dashboard.remove_network', host_id=host.id, name=n.name) }}">
+        <form method="post" action="{{ url_for('dashboard.remove_network', host_id=host.id, name=n.name) }}" data-confirm="Remove network &quot;{{ n.name }}&quot;? This can't be undone.">
           <button type="submit" class="danger">Remove</button>
         </form>
         {% endif %}

@@ -14,7 +14,7 @@
 <div class="muted" style="margin-bottom: 1rem;">status: {{ cmd.status }}</div>
 
 {% if cmd.status == "pending" %}
-<div class="empty">Waiting for the agent to pick this up&hellip; (auto-refreshing)</div>
+<div class="empty"><span class="spinner"></span>Waiting for the agent to pick this up&hellip; (auto-refreshing)</div>
 {% elif cmd.action == "logs" %}
 <pre class="log-box">{{ cmd.result or "(no output)" }}</pre>
 {% elif cmd.result %}

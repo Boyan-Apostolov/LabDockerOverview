@@ -257,6 +257,22 @@
   nav form.logout {
     display: inline;
   }
+
+  .spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 0.4rem;
+    border: 2px solid var(--text-dim);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    vertical-align: -1px;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 </style>
 </head>
 <body>
@@ -280,5 +296,20 @@
 <main>
 {% block content %}{% endblock %}
 </main>
+<script>
+  document.addEventListener("submit", function (e) {
+    var form = e.target;
+    var confirmMsg = form.getAttribute("data-confirm");
+    if (confirmMsg && !window.confirm(confirmMsg)) {
+      e.preventDefault();
+      return;
+    }
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn && !btn.disabled) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>' + btn.textContent;
+    }
+  });
+</script>
 </body>
 </html>

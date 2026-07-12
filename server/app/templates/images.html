@@ -27,7 +27,7 @@
       <td>{% if img.tags %}{{ img.tags }}{% else %}<span class="muted">dangling</span>{% endif %}</td>
       <td>{{ "%.1f"|format(img.size_mb) if img.size_mb is not none else '-' }}</td>
       <td class="actions">
-        <form method="post" action="{{ url_for('dashboard.remove_image', host_id=host.id, image_id=img.image_id) }}">
+        <form method="post" action="{{ url_for('dashboard.remove_image', host_id=host.id, image_id=img.image_id) }}" data-confirm="Remove image {{ img.tags or 'dangling ' + img.image_id }}? This can't be undone.">
           <button type="submit" class="danger">Remove</button>
         </form>
       </td>

@@ -8,6 +8,10 @@ def create_app():
 
     init_db()
 
+    from .auth import get_or_create_secret_key
+
+    app.secret_key = get_or_create_secret_key(SessionLocal())
+
     from .routes_api import api_bp
     from .routes_dashboard import dashboard_bp
 

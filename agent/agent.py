@@ -90,6 +90,18 @@ def send_report(server, token, host_id, payload):
     resp.raise_for_status()
 
 
+LOG_TAIL_LINES = 200
+LOG_MAX_CHARS = 20000
+
+
+def run_command(container, action):
+    if action == "logs":
+        raw = container.logs(tail=LOG_TAIL_LINES, timestamps=True)
+        return raw.decode("utf-8", errors="replace")[-LOG_MAX_CHARS:]
+    getattr(container, action)()
+    return None
+
+
 def poll_commands(server, token, host_id, client):
     resp = requests.get(
         f"{server}/api/v1/commands",
@@ -100,15 +112,17 @@ def poll_commands(server, token, host_id, client):
     resp.raise_for_status()
     for cmd in resp.json():
         status = "success"
+        output = None
         try:
             container = client.containers.get(cmd["container_id"])
-            getattr(container, cmd["action"])()
+            output = run_command(container, cmd["action"])
         except Exception as e:
             log(f"command {cmd['id']} ({cmd['action']}) failed: {e}")
             status = "failed"
+            output = str(e)
         requests.post(
             f"{server}/api/v1/commands/{cmd['id']}/ack",
-            json={"status": status},
+            json={"status": status, "output": output},
             headers={"Authorization": f"Bearer {token}"},
             timeout=10,
         )

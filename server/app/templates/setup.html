@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Setup - Homelab Dashboard{% endblock %}
+{% block content %}
+<h1>Welcome to Homelab Dashboard</h1>
+<p class="muted">Set an admin password to secure this instance before adding any hosts.</p>
+
+<div class="card" style="max-width: 380px;">
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <div style="margin-bottom: 0.75rem;">
+      <input type="password" name="password" placeholder="admin password (min 8 chars)" style="width: 100%;" required>
+    </div>
+    <div style="margin-bottom: 0.75rem;">
+      <input type="password" name="confirm" placeholder="confirm password" style="width: 100%;" required>
+    </div>
+    <button type="submit" class="primary">Set password &amp; continue</button>
+  </form>
+</div>
+{% endblock %}

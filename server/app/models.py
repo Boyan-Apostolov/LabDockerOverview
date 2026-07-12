@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, Text
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -59,8 +59,16 @@ class Command(Base):
 
     id = Column(String, primary_key=True, default=gen_id)
     host_id = Column(String, ForeignKey("hosts.id"), nullable=False)
-    action = Column(String, nullable=False)  # restart | stop | start
+    action = Column(String, nullable=False)  # restart | stop | start | logs
     container_id = Column(String, nullable=False)
     status = Column(String, default="pending")  # pending | success | failed
+    result = Column(Text, nullable=True)  # e.g. log output for the logs action
     created_at = Column(DateTime, default=now)
     acked_at = Column(DateTime, nullable=True)
+
+
+class Setting(Base):
+    __tablename__ = "settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(String)

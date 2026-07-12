@@ -2,10 +2,11 @@ import os
 import re
 import secrets
 
-from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory
+from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session
 
 from .db import SessionLocal
 from .models import Host, Container, HostStat, Command, now
+from .auth import is_setup_complete, set_admin_password, check_admin_password
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -14,6 +15,23 @@ _SCRIPTS_CANDIDATES = [
     os.path.join(os.path.dirname(__file__), "..", "scripts"),  # docker image: /app/app -> /app/scripts
 ]
 SCRIPTS_DIR = next((p for p in _SCRIPTS_CANDIDATES if os.path.isdir(p)), _SCRIPTS_CANDIDATES[0])
+
+# reachable without a session: the curl-fetched installer, and the setup/login flow itself
+PUBLIC_ENDPOINTS = {"dashboard.install_agent_script", "dashboard.setup", "dashboard.login"}
+
+
+@dashboard_bp.before_request
+def require_auth():
+    if request.endpoint in PUBLIC_ENDPOINTS:
+        return None
+
+    db = SessionLocal()
+    if not is_setup_complete(db):
+        return redirect(url_for("dashboard.setup"))
+
+    if not session.get("authenticated"):
+        return redirect(url_for("dashboard.login", next=request.path))
+    return None
 
 
 def slugify(name):
@@ -24,6 +42,51 @@ def slugify(name):
 @dashboard_bp.route("/install-agent.sh")
 def install_agent_script():
     return send_from_directory(SCRIPTS_DIR, "install-agent.sh", mimetype="text/x-shellscript")
+
+
+@dashboard_bp.route("/setup", methods=["GET", "POST"])
+def setup():
+    db = SessionLocal()
+    if is_setup_complete(db):
+        return redirect(url_for("dashboard.hosts"))
+
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm", "")
+        if len(password) < 8:
+            error = "Password must be at least 8 characters."
+        elif password != confirm:
+            error = "Passwords do not match."
+        else:
+            set_admin_password(db, password)
+            session["authenticated"] = True
+            return redirect(url_for("dashboard.hosts", welcome=1))
+
+    return render_template("setup.html", error=error)
+
+
+@dashboard_bp.route("/login", methods=["GET", "POST"])
+def login():
+    db = SessionLocal()
+    if not is_setup_complete(db):
+        return redirect(url_for("dashboard.setup"))
+
+    error = None
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if check_admin_password(db, password):
+            session["authenticated"] = True
+            return redirect(request.form.get("next") or url_for("dashboard.hosts"))
+        error = "Incorrect password."
+
+    return render_template("login.html", error=error, next=request.args.get("next", ""))
+
+
+@dashboard_bp.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("dashboard.login"))
 
 
 @dashboard_bp.route("/")
@@ -48,7 +111,8 @@ def hosts():
             }
         )
 
-    return render_template("hosts.html", hosts_data=hosts_data)
+    show_welcome = request.args.get("welcome") == "1"
+    return render_template("hosts.html", hosts_data=hosts_data, show_welcome=show_welcome)
 
 
 @dashboard_bp.route("/hosts/<host_id>")
@@ -66,21 +130,31 @@ def host_detail(host_id):
 
 @dashboard_bp.route("/hosts/<host_id>/containers/<container_id>/commands/<action>", methods=["POST"])
 def enqueue_command(host_id, container_id, action):
-    if action not in ("restart", "stop"):
+    if action not in ("restart", "stop", "logs"):
         return redirect(url_for("dashboard.host_detail", host_id=host_id))
 
     db = SessionLocal()
-    db.add(
-        Command(
-            host_id=host_id,
-            action=action,
-            container_id=container_id,
-            status="pending",
-            created_at=now(),
-        )
+    cmd = Command(
+        host_id=host_id,
+        action=action,
+        container_id=container_id,
+        status="pending",
+        created_at=now(),
     )
+    db.add(cmd)
     db.commit()
+
+    if action == "logs":
+        return redirect(url_for("dashboard.command_status", host_id=host_id, command_id=cmd.id))
     return redirect(url_for("dashboard.host_detail", host_id=host_id))
+
+
+@dashboard_bp.route("/hosts/<host_id>/commands/<command_id>")
+def command_status(host_id, command_id):
+    db = SessionLocal()
+    host = db.query(Host).get(host_id)
+    cmd = db.query(Command).get(command_id)
+    return render_template("command_result.html", host=host, host_id=host_id, cmd=cmd)
 
 
 @dashboard_bp.route("/search")

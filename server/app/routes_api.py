@@ -116,6 +116,7 @@ def ack_command(command_id):
         return jsonify({"error": "not found"}), 404
 
     cmd.status = payload.get("status", "success")
+    cmd.result = payload.get("output")
     cmd.acked_at = now()
     db.commit()
     return jsonify({"ok": True})

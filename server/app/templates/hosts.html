@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Hosts - Homelab Dashboard{% endblock %}
 {% block content %}
+{% if show_welcome %}
+<div class="banner">
+  Admin password set. Next, head to <a href="{{ url_for('dashboard.settings') }}">Settings</a> to register your first host and get its one-line agent install command.
+</div>
+{% endif %}
 <h1>Hosts</h1>
 
 {% if not hosts_data %}

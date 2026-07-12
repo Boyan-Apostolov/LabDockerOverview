@@ -22,11 +22,11 @@
 <table>
   <thead>
     <tr>
-      <th>Name</th>
-      <th>Image</th>
-      <th>Status</th>
-      <th>CPU %</th>
-      <th>Mem (MB)</th>
+      <th><a href="{{ sort_link('dashboard.host_detail', sort, dir, 'name', host_id=host.id) }}">Name{{ sort_arrow(sort, dir, 'name') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.host_detail', sort, dir, 'image', host_id=host.id) }}">Image{{ sort_arrow(sort, dir, 'image') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.host_detail', sort, dir, 'status', host_id=host.id) }}">Status{{ sort_arrow(sort, dir, 'status') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.host_detail', sort, dir, 'cpu', host_id=host.id) }}">CPU %{{ sort_arrow(sort, dir, 'cpu') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.host_detail', sort, dir, 'mem', host_id=host.id) }}">Mem (MB){{ sort_arrow(sort, dir, 'mem') }}</a></th>
       <th>Actions</th>
     </tr>
   </thead>

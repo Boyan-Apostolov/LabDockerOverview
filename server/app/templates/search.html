@@ -20,12 +20,12 @@
 <table>
   <thead>
     <tr>
-      <th>Host</th>
-      <th>Name</th>
-      <th>Image</th>
-      <th>Status</th>
-      <th>CPU %</th>
-      <th>Mem (MB)</th>
+      <th><a href="{{ sort_link('dashboard.search', sort, dir, 'host') }}">Host{{ sort_arrow(sort, dir, 'host') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.search', sort, dir, 'name') }}">Name{{ sort_arrow(sort, dir, 'name') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.search', sort, dir, 'image') }}">Image{{ sort_arrow(sort, dir, 'image') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.search', sort, dir, 'status') }}">Status{{ sort_arrow(sort, dir, 'status') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.search', sort, dir, 'cpu') }}">CPU %{{ sort_arrow(sort, dir, 'cpu') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.search', sort, dir, 'mem') }}">Mem (MB){{ sort_arrow(sort, dir, 'mem') }}</a></th>
     </tr>
   </thead>
   <tbody>

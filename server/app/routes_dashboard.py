@@ -87,6 +87,41 @@ def effective_server_url(db):
     return get_server_url(db) or auto_detected_url()
 
 
+def parse_sort(default_key, allowed_keys, prefix=""):
+    key = request.args.get(f"{prefix}sort", default_key)
+    if key not in allowed_keys:
+        key = default_key
+    direction = request.args.get(f"{prefix}dir", "asc")
+    if direction not in ("asc", "desc"):
+        direction = "asc"
+    return key, direction
+
+
+def sorted_query(query, columns, sort_key, direction):
+    column = columns[sort_key]
+    return query.order_by(column.desc() if direction == "desc" else column.asc())
+
+
+def sort_link(endpoint, current_sort, current_dir, key, param_prefix="", **url_kwargs):
+    # merges in whatever's already in the URL (e.g. ?q=... on search, or the other
+    # table's sort state on a page with two tables) so clicking one header doesn't
+    # reset unrelated state
+    next_dir = "desc" if current_sort == key and current_dir == "asc" else "asc"
+    args = {**request.args.to_dict(), **url_kwargs, f"{param_prefix}sort": key, f"{param_prefix}dir": next_dir}
+    return url_for(endpoint, **args)
+
+
+def sort_arrow(current_sort, current_dir, key):
+    if current_sort != key:
+        return ""
+    return " ▲" if current_dir == "asc" else " ▼"
+
+
+@dashboard_bp.context_processor
+def inject_sort_helpers():
+    return {"sort_link": sort_link, "sort_arrow": sort_arrow}
+
+
 @dashboard_bp.route("/install-agent.sh")
 def install_agent_script():
     return send_from_directory(SCRIPTS_DIR, "install-agent.sh", mimetype="text/x-shellscript")
@@ -163,17 +198,24 @@ def hosts():
     return render_template("hosts.html", hosts_data=hosts_data, show_welcome=show_welcome)
 
 
+CONTAINER_SORT_COLUMNS = {
+    "name": Container.name,
+    "image": Container.image,
+    "status": Container.status,
+    "cpu": Container.cpu_percent,
+    "mem": Container.mem_usage_mb,
+}
+
+
 @dashboard_bp.route("/hosts/<host_id>")
 def host_detail(host_id):
     db = SessionLocal()
     host = db.query(Host).get(host_id)
-    containers = (
-        db.query(Container)
-        .filter_by(host_id=host_id)
-        .order_by(Container.name.asc())
-        .all()
-    )
-    return render_template("host_detail.html", host=host, containers=containers)
+    sort, dir = parse_sort("name", CONTAINER_SORT_COLUMNS)
+    containers = sorted_query(
+        db.query(Container).filter_by(host_id=host_id), CONTAINER_SORT_COLUMNS, sort, dir
+    ).all()
+    return render_template("host_detail.html", host=host, containers=containers, sort=sort, dir=dir)
 
 
 @dashboard_bp.route("/hosts/<host_id>/containers/<container_id>/commands/<action>", methods=["POST"])
@@ -205,6 +247,9 @@ def command_status(host_id, command_id):
     return render_template("command_result.html", host=host, host_id=host_id, cmd=cmd)
 
 
+SEARCH_SORT_COLUMNS = {"host": Host.name, **CONTAINER_SORT_COLUMNS}
+
+
 @dashboard_bp.route("/search")
 def search():
     q = request.args.get("q", "").strip()
@@ -213,16 +258,22 @@ def search():
     if q:
         like = f"%{q.lower()}%"
         query = query.filter((Container.name.ilike(like)) | (Container.image.ilike(like)))
-    rows = query.order_by(Host.name.asc(), Container.name.asc()).all()
+
+    sort, dir = parse_sort("name", SEARCH_SORT_COLUMNS)
+    rows = sorted_query(query, SEARCH_SORT_COLUMNS, sort, dir).all()
     results = [{"container": c, "host": h} for c, h in rows]
 
-    return render_template("search.html", q=q, results=results)
+    return render_template("search.html", q=q, results=results, sort=sort, dir=dir)
+
+
+HOST_SORT_COLUMNS = {"name": Host.name, "id": Host.id, "status": Host.status, "last_seen": Host.last_seen}
 
 
 @dashboard_bp.route("/settings")
 def settings():
     db = SessionLocal()
-    host_rows = db.query(Host).order_by(Host.name.asc()).all()
+    sort, dir = parse_sort("name", HOST_SORT_COLUMNS)
+    host_rows = sorted_query(db.query(Host), HOST_SORT_COLUMNS, sort, dir).all()
     server_url = get_server_url(db)
     detected_url = auto_detected_url()
     return render_template(
@@ -233,6 +284,8 @@ def settings():
         server_url=server_url,
         detected_url=detected_url,
         detected_url_is_local=is_local_url(detected_url),
+        sort=sort,
+        dir=dir,
     )
 
 
@@ -270,7 +323,8 @@ def add_host():
         f"--server {base_url} --token {agent_token} --host-id {host_id}"
     )
 
-    host_rows = db.query(Host).order_by(Host.name.asc()).all()
+    sort, dir = parse_sort("name", HOST_SORT_COLUMNS)
+    host_rows = sorted_query(db.query(Host), HOST_SORT_COLUMNS, sort, dir).all()
     return render_template(
         "settings.html",
         hosts=host_rows,
@@ -280,6 +334,8 @@ def add_host():
         server_url=get_server_url(db),
         detected_url=auto_detected_url(),
         detected_url_is_local=is_local_url(auto_detected_url()),
+        sort=sort,
+        dir=dir,
     )
 
 
@@ -311,12 +367,16 @@ def container_exec_submit(host_id, container_id):
     return redirect(url_for("dashboard.command_status", host_id=host_id, command_id=cmd.id))
 
 
+IMAGE_SORT_COLUMNS = {"tags": Image.tags, "size": Image.size_mb}
+
+
 @dashboard_bp.route("/hosts/<host_id>/images")
 def host_images(host_id):
     db = SessionLocal()
     host = db.query(Host).get(host_id)
-    images = db.query(Image).filter_by(host_id=host_id).order_by(Image.updated_at.desc()).all()
-    return render_template("images.html", host=host, images=images)
+    sort, dir = parse_sort("tags", IMAGE_SORT_COLUMNS)
+    images = sorted_query(db.query(Image).filter_by(host_id=host_id), IMAGE_SORT_COLUMNS, sort, dir).all()
+    return render_template("images.html", host=host, images=images, sort=sort, dir=dir)
 
 
 @dashboard_bp.route("/hosts/<host_id>/images/<image_id>/remove", methods=["POST"])
@@ -330,13 +390,30 @@ def remove_image(host_id, image_id):
 BUILTIN_NETWORKS = {"bridge", "host", "none"}
 
 
+VOLUME_SORT_COLUMNS = {
+    "name": Volume.name,
+    "driver": Volume.driver,
+    "size": Volume.size_mb,
+    "used_by": Volume.used_by,
+    "created": Volume.docker_created_at,
+}
+NETWORK_SORT_COLUMNS = {"name": Network.name, "driver": Network.driver, "scope": Network.scope}
+
+
 @dashboard_bp.route("/hosts/<host_id>/volumes")
 def host_volumes(host_id):
     db = SessionLocal()
     host = db.query(Host).get(host_id)
-    volumes = db.query(Volume).filter_by(host_id=host_id).order_by(Volume.name.asc()).all()
-    networks = db.query(Network).filter_by(host_id=host_id).order_by(Network.name.asc()).all()
-    return render_template("volumes.html", host=host, volumes=volumes, networks=networks)
+
+    sort, dir = parse_sort("name", VOLUME_SORT_COLUMNS)
+    volumes = sorted_query(db.query(Volume).filter_by(host_id=host_id), VOLUME_SORT_COLUMNS, sort, dir).all()
+
+    nsort, ndir = parse_sort("name", NETWORK_SORT_COLUMNS, prefix="n")
+    networks = sorted_query(db.query(Network).filter_by(host_id=host_id), NETWORK_SORT_COLUMNS, nsort, ndir).all()
+
+    return render_template(
+        "volumes.html", host=host, volumes=volumes, networks=networks, sort=sort, dir=dir, nsort=nsort, ndir=ndir
+    )
 
 
 @dashboard_bp.route("/hosts/<host_id>/volumes/<name>/remove", methods=["POST"])

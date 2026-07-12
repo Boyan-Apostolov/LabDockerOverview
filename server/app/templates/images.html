@@ -16,8 +16,8 @@
 <table>
   <thead>
     <tr>
-      <th>Tags</th>
-      <th>Size (MB)</th>
+      <th><a href="{{ sort_link('dashboard.host_images', sort, dir, 'tags', host_id=host.id) }}">Tags{{ sort_arrow(sort, dir, 'tags') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.host_images', sort, dir, 'size', host_id=host.id) }}">Size (MB){{ sort_arrow(sort, dir, 'size') }}</a></th>
       <th>Actions</th>
     </tr>
   </thead>

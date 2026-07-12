@@ -50,10 +50,10 @@
 <table style="margin-bottom: 1.5rem;">
   <thead>
     <tr>
-      <th>Name</th>
-      <th>ID</th>
-      <th>Status</th>
-      <th>Last seen</th>
+      <th><a href="{{ sort_link('dashboard.settings', sort, dir, 'name') }}">Name{{ sort_arrow(sort, dir, 'name') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.settings', sort, dir, 'id') }}">ID{{ sort_arrow(sort, dir, 'id') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.settings', sort, dir, 'status') }}">Status{{ sort_arrow(sort, dir, 'status') }}</a></th>
+      <th><a href="{{ sort_link('dashboard.settings', sort, dir, 'last_seen') }}">Last seen{{ sort_arrow(sort, dir, 'last_seen') }}</a></th>
       <th>Agent token</th>
     </tr>
   </thead>

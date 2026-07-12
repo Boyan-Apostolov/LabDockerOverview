@@ -178,7 +178,7 @@ def host_detail(host_id):
 
 @dashboard_bp.route("/hosts/<host_id>/containers/<container_id>/commands/<action>", methods=["POST"])
 def enqueue_command(host_id, container_id, action):
-    if action not in ("restart", "stop", "logs"):
+    if action not in ("restart", "stop", "start", "logs"):
         return redirect(url_for("dashboard.host_detail", host_id=host_id))
 
     db = SessionLocal()
@@ -209,17 +209,12 @@ def command_status(host_id, command_id):
 def search():
     q = request.args.get("q", "").strip()
     db = SessionLocal()
-    results = []
+    query = db.query(Container, Host).join(Host, Container.host_id == Host.id)
     if q:
         like = f"%{q.lower()}%"
-        rows = (
-            db.query(Container, Host)
-            .join(Host, Container.host_id == Host.id)
-            .filter((Container.name.ilike(like)) | (Container.image.ilike(like)))
-            .order_by(Host.name.asc(), Container.name.asc())
-            .all()
-        )
-        results = [{"container": c, "host": h} for c, h in rows]
+        query = query.filter((Container.name.ilike(like)) | (Container.image.ilike(like)))
+    rows = query.order_by(Host.name.asc(), Container.name.asc()).all()
+    results = [{"container": c, "host": h} for c, h in rows]
 
     return render_template("search.html", q=q, results=results)
 

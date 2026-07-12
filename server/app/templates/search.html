@@ -1,16 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Search - LabDockerOverview{% endblock %}
+{% block title %}Containers - LabDockerOverview{% endblock %}
 {% block content %}
-<h1>Search containers</h1>
+<h1>Containers</h1>
+<div class="muted" style="margin-bottom: 1rem;">
+  {% if q %}{{ results|length }} match{{ 'es' if results|length != 1 else '' }} for "{{ q }}"{% else %}{{ results|length }} container{{ 's' if results|length != 1 else '' }} across all hosts{% endif %}
+</div>
 
 <form method="get" action="{{ url_for('dashboard.search') }}" style="margin-bottom: 1rem;">
-  <input type="text" name="q" placeholder="name or image..." value="{{ q }}" style="width: 320px;">
-  <button type="submit">Search</button>
+  <input type="text" name="q" placeholder="filter by name or image..." value="{{ q }}" style="width: 320px;">
+  <button type="submit">Filter</button>
+  {% if q %}<a href="{{ url_for('dashboard.search') }}">clear</a>{% endif %}
 </form>
 
 {% if q and not results %}
 <div class="empty">No containers match "{{ q }}".</div>
-{% elif results %}
+{% elif not results %}
+<div class="empty">No containers reported yet.</div>
+{% else %}
 <table>
   <thead>
     <tr>
@@ -35,7 +41,5 @@
     {% endfor %}
   </tbody>
 </table>
-{% else %}
-<div class="muted">Enter a search term to find containers across all hosts.</div>
 {% endif %}
 {% endblock %}

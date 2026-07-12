@@ -62,16 +62,21 @@ def container_ports(container):
 
 def collect_containers(client):
     result = []
-    for c in client.containers.list():
+    for c in client.containers.list(all=True):
         try:
-            stats = c.stats(stream=False)
-            mem_mb = round(stats["memory_stats"].get("usage", 0) / (1024 ** 2))
+            if c.status == "running":
+                stats = c.stats(stream=False)
+                mem_mb = round(stats["memory_stats"].get("usage", 0) / (1024 ** 2))
+                cpu_percent = container_cpu_percent(stats)
+            else:
+                mem_mb = 0
+                cpu_percent = 0.0
             result.append({
                 "id": c.id[:12],
                 "name": c.name,
                 "image": c.image.tags[0] if c.image.tags else c.image.short_id,
                 "status": c.status,
-                "cpu_percent": container_cpu_percent(stats),
+                "cpu_percent": cpu_percent,
                 "mem_usage_mb": mem_mb,
                 "ports": container_ports(c),
             })

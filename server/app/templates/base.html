@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Homelab Dashboard{% endblock %}</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-panel: #161922;
+    --bg-panel-hover: #1c202c;
+    --border: #2a2f3a;
+    --text: #d7dae0;
+    --text-dim: #8b90a0;
+    --accent: #4f8cff;
+    --green: #3ecf6e;
+    --red: #e5534b;
+    --gray: #6b7280;
+    --yellow: #d9a441;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+  }
+
+  nav .brand {
+    font-weight: bold;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  nav .links {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+  }
+
+  nav form.search {
+    display: flex;
+  }
+
+  nav form.search input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px 0 0 4px;
+    font-family: inherit;
+    font-size: 13px;
+    width: 220px;
+  }
+
+  nav form.search button {
+    border-radius: 0 4px 4px 0;
+  }
+
+  main {
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  h1 { font-size: 1.3rem; margin: 0 0 1rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 0.75rem; }
+
+  button, input[type="submit"] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.7rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  button:hover { background: var(--bg-panel-hover); }
+  button:disabled { color: var(--text-dim); cursor: not-allowed; }
+
+  button.danger:hover { border-color: var(--red); color: var(--red); }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+
+  input[type="text"] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    color: var(--text-dim);
+    font-weight: normal;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg-panel-hover); }
+
+  .card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+  }
+
+  .dot-online { background: var(--green); }
+  .dot-offline { background: var(--red); }
+  .dot-unknown { background: var(--gray); }
+
+  .bar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+  }
+
+  .bar-fill.warn { background: var(--yellow); }
+  .bar-fill.crit { background: var(--red); }
+
+  .bar-row {
+    margin-bottom: 0.5rem;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .muted { color: var(--text-dim); }
+
+  .actions form { display: inline; }
+  .actions button { margin-right: 0.35rem; }
+
+  code, .mono { font-family: inherit; }
+
+  .install-box {
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.85rem;
+    margin: 1rem 0;
+    word-break: break-all;
+    font-size: 12.5px;
+    color: var(--green);
+  }
+
+  details summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  .empty {
+    color: var(--text-dim);
+    padding: 2rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand">homelab</span>
+  <span class="links">
+    <a href="{{ url_for('dashboard.hosts') }}">Hosts</a>
+    <a href="{{ url_for('dashboard.search') }}">Search</a>
+    <a href="{{ url_for('dashboard.settings') }}">Settings</a>
+  </span>
+  <form class="search" action="{{ url_for('dashboard.search') }}" method="get">
+    <input type="text" name="q" placeholder="search containers..." value="{{ request.args.get('q', '') }}">
+    <button type="submit">Go</button>
+  </form>
+</nav>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

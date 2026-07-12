@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Search - Homelab Dashboard{% endblock %}
+{% block content %}
+<h1>Search containers</h1>
+
+<form method="get" action="{{ url_for('dashboard.search') }}" style="margin-bottom: 1rem;">
+  <input type="text" name="q" placeholder="name or image..." value="{{ q }}" style="width: 320px;">
+  <button type="submit">Search</button>
+</form>
+
+{% if q and not results %}
+<div class="empty">No containers match "{{ q }}".</div>
+{% elif results %}
+<table>
+  <thead>
+    <tr>
+      <th>Host</th>
+      <th>Name</th>
+      <th>Image</th>
+      <th>Status</th>
+      <th>CPU %</th>
+      <th>Mem (MB)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in results %}
+    <tr>
+      <td><a href="{{ url_for('dashboard.host_detail', host_id=r.host.id) }}">{{ r.host.name }}</a></td>
+      <td>{{ r.container.name }}</td>
+      <td class="muted">{{ r.container.image }}</td>
+      <td>{{ r.container.status }}</td>
+      <td>{{ "%.1f"|format(r.container.cpu_percent) if r.container.cpu_percent is not none else '-' }}</td>
+      <td>{{ "%.0f"|format(r.container.mem_usage_mb) if r.container.mem_usage_mb is not none else '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="muted">Enter a search term to find containers across all hosts.</div>
+{% endif %}
+{% endblock %}

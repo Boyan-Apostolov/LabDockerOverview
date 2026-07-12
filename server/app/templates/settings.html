@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Settings - Homelab Dashboard{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+{% if new_host %}
+<div class="card" style="margin-bottom: 1.5rem;">
+  <h2>Host "{{ new_host.name }}" registered</h2>
+  <div class="muted">Run this on the target machine to install and connect the agent:</div>
+  <div class="install-box">{{ install_command }}</div>
+</div>
+{% endif %}
+
+<h2>Registered hosts</h2>
+{% if not hosts %}
+<div class="empty">No hosts registered yet.</div>
+{% else %}
+<table style="margin-bottom: 1.5rem;">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>ID</th>
+      <th>Status</th>
+      <th>Last seen</th>
+      <th>Agent token</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for host in hosts %}
+    <tr>
+      <td><a href="{{ url_for('dashboard.host_detail', host_id=host.id) }}">{{ host.name }}</a></td>
+      <td class="muted">{{ host.id }}</td>
+      <td><span class="dot dot-{{ host.status or 'unknown' }}"></span>{{ host.status or 'unknown' }}</td>
+      <td class="muted">{{ host.last_seen.strftime('%Y-%m-%d %H:%M UTC') if host.last_seen else 'never' }}</td>
+      <td>
+        <details>
+          <summary>reveal</summary>
+          <span class="mono">{{ host.agent_token }}</span>
+        </details>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Add host</h2>
+<div class="card" style="max-width: 420px;">
+  <form method="post" action="{{ url_for('dashboard.add_host') }}">
+    <div style="margin-bottom: 0.75rem;">
+      <input type="text" name="name" placeholder="host name, e.g. proxmox-lxc-03" style="width: 100%;" required>
+    </div>
+    <button type="submit" class="primary">Register host</button>
+  </form>
+</div>
+{% endblock %}

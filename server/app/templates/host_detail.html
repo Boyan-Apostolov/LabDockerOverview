@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ host.name if host else "Host" }} - Homelab Dashboard{% endblock %}
+{% block content %}
+
+{% if not host %}
+<div class="empty">Host not found.</div>
+{% else %}
+<h1>
+  <span class="dot dot-{{ host.status or 'unknown' }}"></span>
+  {{ host.name }}
+</h1>
+<div class="muted" style="margin-bottom: 1rem;">
+  id: {{ host.id }} &middot;
+  last seen: {{ host.last_seen.strftime('%Y-%m-%d %H:%M UTC') if host.last_seen else 'never' }}
+</div>
+
+{% if not containers %}
+<div class="empty">No containers reported for this host yet.</div>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Image</th>
+      <th>Status</th>
+      <th>CPU %</th>
+      <th>Mem (MB)</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in containers %}
+    <tr>
+      <td>{{ c.name }}</td>
+      <td class="muted">{{ c.image }}</td>
+      <td>{{ c.status }}</td>
+      <td>{{ "%.1f"|format(c.cpu_percent) if c.cpu_percent is not none else '-' }}</td>
+      <td>{{ "%.0f"|format(c.mem_usage_mb) if c.mem_usage_mb is not none else '-' }}</td>
+      <td class="actions">
+        <form method="post" action="{{ url_for('dashboard.enqueue_command', host_id=host.id, container_id=c.container_id, action='restart') }}">
+          <button type="submit">Restart</button>
+        </form>
+        <form method="post" action="{{ url_for('dashboard.enqueue_command', host_id=host.id, container_id=c.container_id, action='stop') }}">
+          <button type="submit" class="danger">Stop</button>
+        </form>
+        <button type="button" disabled title="coming soon">Logs</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}
+{% endblock %}

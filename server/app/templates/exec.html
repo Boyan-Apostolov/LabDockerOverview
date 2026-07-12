@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Exec &middot; {{ host.name if host else "Host" }} - LabDockerOverview{% endblock %}
+{% block content %}
+
+<p><a href="{{ url_for('dashboard.host_detail', host_id=host.id if host else host_id) }}">&larr; back to {{ host.name if host else host_id }}</a></p>
+
+<h1>Exec &middot; {{ container_id }}</h1>
+<p class="muted" style="margin-bottom: 1rem;">
+  Runs a single non-interactive command inside the container via <code class="mono">sh -c</code> and shows the
+  output once. This is not a live shell &mdash; things like <code class="mono">vim</code>, <code class="mono">top</code>,
+  or anything needing a real TTY won't work.
+</p>
+
+<div class="card" style="max-width: 500px;">
+  <form method="post" action="{{ url_for('dashboard.container_exec_submit', host_id=host.id if host else host_id, container_id=container_id) }}">
+    <div style="margin-bottom: 0.75rem;">
+      <input type="text" name="command" placeholder="ls -la /app" style="width: 100%;" required>
+    </div>
+    <button type="submit" class="primary">Run</button>
+  </form>
+</div>
+{% endblock %}

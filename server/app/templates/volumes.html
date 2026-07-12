@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Volumes &amp; Networks - {{ host.name if host else "Host" }} - LabDockerOverview{% endblock %}
+{% block content %}
+
+{% if not host %}
+<div class="empty">Host not found.</div>
+{% else %}
+<h1>Volumes &amp; Networks &mdash; {{ host.name }}</h1>
+<div class="muted" style="margin-bottom: 1rem;">
+  <a href="{{ url_for('dashboard.host_detail', host_id=host.id) }}">&larr; back to {{ host.name }}</a>
+</div>
+
+<h2>Volumes</h2>
+{% if not volumes %}
+<div class="empty">No volumes reported for this host yet.</div>
+{% else %}
+<table style="margin-bottom: 1.5rem;">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Driver</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in volumes %}
+    <tr>
+      <td>{{ v.name }}</td>
+      <td class="muted">{{ v.driver }}</td>
+      <td class="actions">
+        <form method="post" action="{{ url_for('dashboard.remove_volume', host_id=host.id, name=v.name) }}">
+          <button type="submit" class="danger">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Networks</h2>
+{% if not networks %}
+<div class="empty">No networks reported for this host yet.</div>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Driver</th>
+      <th>Scope</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for n in networks %}
+    <tr>
+      <td>{{ n.name }}</td>
+      <td class="muted">{{ n.driver }}</td>
+      <td class="muted">{{ n.scope }}</td>
+      <td class="actions">
+        {% if n.name in ("bridge", "host", "none") %}
+        <span class="muted">(built-in)</span>
+        {% else %}
+        <form method="post" action="{{ url_for('dashboard.remove_network', host_id=host.id, name=n.name) }}">
+          <button type="submit" class="danger">Remove</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}
+{% endblock %}

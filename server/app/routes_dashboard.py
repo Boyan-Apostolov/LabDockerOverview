@@ -7,7 +7,7 @@ import socket
 from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session
 
 from .db import SessionLocal
-from .models import Host, Container, HostStat, Command, now
+from .models import Host, Container, HostStat, Command, Image, Volume, Network, now
 from .auth import (
     is_setup_complete,
     set_admin_password,
@@ -281,3 +281,78 @@ def add_host():
         detected_url=auto_detected_url(),
         detected_url_is_local=is_local_url(auto_detected_url()),
     )
+
+
+@dashboard_bp.route("/hosts/<host_id>/containers/<container_id>/exec", methods=["GET"])
+def container_exec(host_id, container_id):
+    db = SessionLocal()
+    host = db.query(Host).get(host_id)
+    return render_template("exec.html", host=host, container_id=container_id)
+
+
+@dashboard_bp.route("/hosts/<host_id>/containers/<container_id>/exec", methods=["POST"])
+def container_exec_submit(host_id, container_id):
+    command = request.form.get("command", "").strip()
+    if not command:
+        return redirect(url_for("dashboard.container_exec", host_id=host_id, container_id=container_id))
+
+    db = SessionLocal()
+    cmd = Command(
+        host_id=host_id,
+        action="exec",
+        container_id=container_id,
+        payload=command,
+        status="pending",
+        created_at=now(),
+    )
+    db.add(cmd)
+    db.commit()
+
+    return redirect(url_for("dashboard.command_status", host_id=host_id, command_id=cmd.id))
+
+
+@dashboard_bp.route("/hosts/<host_id>/images")
+def host_images(host_id):
+    db = SessionLocal()
+    host = db.query(Host).get(host_id)
+    images = db.query(Image).filter_by(host_id=host_id).order_by(Image.updated_at.desc()).all()
+    return render_template("images.html", host=host, images=images)
+
+
+@dashboard_bp.route("/hosts/<host_id>/images/<image_id>/remove", methods=["POST"])
+def remove_image(host_id, image_id):
+    db = SessionLocal()
+    db.add(Command(host_id=host_id, action="remove_image", container_id=image_id, status="pending", created_at=now()))
+    db.commit()
+    return redirect(url_for("dashboard.host_images", host_id=host_id))
+
+
+BUILTIN_NETWORKS = {"bridge", "host", "none"}
+
+
+@dashboard_bp.route("/hosts/<host_id>/volumes")
+def host_volumes(host_id):
+    db = SessionLocal()
+    host = db.query(Host).get(host_id)
+    volumes = db.query(Volume).filter_by(host_id=host_id).order_by(Volume.name.asc()).all()
+    networks = db.query(Network).filter_by(host_id=host_id).order_by(Network.name.asc()).all()
+    return render_template("volumes.html", host=host, volumes=volumes, networks=networks)
+
+
+@dashboard_bp.route("/hosts/<host_id>/volumes/<name>/remove", methods=["POST"])
+def remove_volume(host_id, name):
+    db = SessionLocal()
+    db.add(Command(host_id=host_id, action="remove_volume", container_id=name, status="pending", created_at=now()))
+    db.commit()
+    return redirect(url_for("dashboard.host_volumes", host_id=host_id))
+
+
+@dashboard_bp.route("/hosts/<host_id>/networks/<name>/remove", methods=["POST"])
+def remove_network(host_id, name):
+    if name in BUILTIN_NETWORKS:  # Docker refuses to remove these; don't even enqueue the attempt
+        return redirect(url_for("dashboard.host_volumes", host_id=host_id))
+
+    db = SessionLocal()
+    db.add(Command(host_id=host_id, action="remove_network", container_id=name, status="pending", created_at=now()))
+    db.commit()
+    return redirect(url_for("dashboard.host_volumes", host_id=host_id))

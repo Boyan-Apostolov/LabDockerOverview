@@ -9,10 +9,12 @@
   <span class="dot dot-{{ host.status or 'unknown' }}"></span>
   {{ host.name }}
 </h1>
+<div style="margin-bottom: 0.5rem;"><a href="{{ url_for('dashboard.host_images', host_id=host.id) }}">Images</a></div>
 <div class="muted" style="margin-bottom: 1rem;">
   id: {{ host.id }} &middot;
   last seen: {{ host.last_seen.strftime('%Y-%m-%d %H:%M UTC') if host.last_seen else 'never' }}
 </div>
+<div style="margin-bottom: 1rem;"><a href="{{ url_for('dashboard.host_volumes', host_id=host.id) }}">Volumes &amp; Networks</a></div>
 
 {% if not containers %}
 <div class="empty">No containers reported for this host yet.</div>
@@ -44,6 +46,7 @@
         <form method="post" action="{{ url_for('dashboard.enqueue_command', host_id=host.id, container_id=c.container_id, action='stop') }}">
           <button type="submit" class="danger">Stop</button>
         </form>
+        <a href="{{ url_for('dashboard.container_exec', host_id=host.id, container_id=c.container_id) }}">Exec</a>
         {% else %}
         <form method="post" action="{{ url_for('dashboard.enqueue_command', host_id=host.id, container_id=c.container_id, action='start') }}">
           <button type="submit" class="primary">Start</button>

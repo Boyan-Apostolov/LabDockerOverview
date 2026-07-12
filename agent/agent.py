@@ -149,7 +149,7 @@ def send_report(server, token, host_id, payload):
         f"{server}/api/v1/report",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
-        timeout=10,
+        timeout=20,
     )
     resp.raise_for_status()
 
@@ -193,7 +193,7 @@ def poll_commands(server, token, host_id, client):
         f"{server}/api/v1/commands",
         params={"host_id": host_id},
         headers={"Authorization": f"Bearer {token}"},
-        timeout=10,
+        timeout=20,
     )
     resp.raise_for_status()
     for cmd in resp.json():
@@ -209,7 +209,7 @@ def poll_commands(server, token, host_id, client):
             f"{server}/api/v1/commands/{cmd['id']}/ack",
             json={"status": status, "output": output},
             headers={"Authorization": f"Bearer {token}"},
-            timeout=10,
+            timeout=20,
         )
 
 

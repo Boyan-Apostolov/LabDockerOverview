@@ -55,6 +55,7 @@
       <th><a href="{{ sort_link('dashboard.settings', sort, dir, 'status') }}">Status{{ sort_arrow(sort, dir, 'status') }}</a></th>
       <th><a href="{{ sort_link('dashboard.settings', sort, dir, 'last_seen') }}">Last seen{{ sort_arrow(sort, dir, 'last_seen') }}</a></th>
       <th>Agent token</th>
+      <th>Actions</th>
     </tr>
   </thead>
   <tbody>
@@ -69,6 +70,11 @@
           <summary>reveal</summary>
           <span class="mono">{{ host.agent_token }}</span>
         </details>
+      </td>
+      <td class="actions">
+        <form method="post" action="{{ url_for('dashboard.remove_host', host_id=host.id) }}" data-confirm="Remove host &quot;{{ host.name }}&quot; and all its data? This can't be undone. The agent still running on that machine will need to be stopped manually - this only stops the dashboard from tracking it.">
+          <button type="submit" class="danger">Remove</button>
+        </form>
       </td>
     </tr>
     {% endfor %}

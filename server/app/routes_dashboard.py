@@ -339,6 +339,23 @@ def add_host():
     )
 
 
+@dashboard_bp.route("/settings/hosts/<host_id>/remove", methods=["POST"])
+def remove_host(host_id):
+    db = SessionLocal()
+    # the dashboard can only stop tracking this host - it has no way to reach out and stop
+    # the agent running there (pull-only architecture, no inbound access to hosts), so the
+    # agent's token is what stops working, not the agent process itself
+    db.query(Container).filter_by(host_id=host_id).delete(synchronize_session=False)
+    db.query(Image).filter_by(host_id=host_id).delete(synchronize_session=False)
+    db.query(Volume).filter_by(host_id=host_id).delete(synchronize_session=False)
+    db.query(Network).filter_by(host_id=host_id).delete(synchronize_session=False)
+    db.query(HostStat).filter_by(host_id=host_id).delete(synchronize_session=False)
+    db.query(Command).filter_by(host_id=host_id).delete(synchronize_session=False)
+    db.query(Host).filter_by(id=host_id).delete(synchronize_session=False)
+    db.commit()
+    return redirect(url_for("dashboard.settings"))
+
+
 @dashboard_bp.route("/hosts/<host_id>/containers/<container_id>/exec", methods=["GET"])
 def container_exec(host_id, container_id):
     db = SessionLocal()

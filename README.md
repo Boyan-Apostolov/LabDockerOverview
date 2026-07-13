@@ -64,25 +64,25 @@ the right address to put in it — see below) and lets you manage registered hos
    curl -sSL http://<server>:8080/install-agent.sh | sh -s -- --server https://yourserver:8080 --token <token> --host-id <host-id>
    ```
 
-   Run that on each Docker host you want to monitor. It pulls and starts the agent container
-   for you. The server address in that command is auto-detected (falls back to asking you to
-   set it explicitly in Settings if it can only see a Docker-internal address, e.g. behind
-   Docker Desktop's bridge network) — on Linux, uncommenting `network_mode: host` in
-   `docker-compose.yml` makes that detection exact.
+   Run that on each Docker host you want to monitor — it pulls `bobby156/labdockeroverview-agent`
+   from Docker Hub and starts it, no local build needed. The server address in that command is
+   auto-detected (falls back to asking you to set it explicitly in Settings if it can only see a
+   Docker-internal address, e.g. behind Docker Desktop's bridge network) — on Linux, uncommenting
+   `network_mode: host` in `docker-compose.yml` makes that detection exact.
 
-Once a pre-built image is published, the server itself can also be run directly without
-cloning the repo:
+The server itself can also be run directly without cloning the repo:
 
 ```sh
-docker run -d -p 8080:8080 -v ./data:/data --name labdockeroverview yourname/labdockeroverview
+docker run -d -p 8080:8080 -v ./data:/data --name labdockeroverview bobby156/labdockeroverview-dashboard
 ```
 
-For now, `docker compose up -d` (building from source) is the primary install path.
+Both images are built for `linux/amd64` and `linux/arm64` (Raspberry Pi, ARM-based Proxmox
+setups, etc.) and published automatically on every push to `main` via GitHub Actions.
 
 ## v1 scope / known limitations
 
 Deliberately minimal: single shared admin password (set on first run), no TLS termination (put
-it behind a reverse proxy if you need HTTPS), no multi-arch build matrix yet.
+it behind a reverse proxy if you need HTTPS).
 
 Exec is a one-shot non-interactive command (`sh -c '<command>'`), not a real terminal — agents
 are poll-only and never hold a connection open, so a live PTY session would need a WebSocket

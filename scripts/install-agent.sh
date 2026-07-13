@@ -4,7 +4,7 @@
 
 set -e
 
-IMAGE="ghcr.io/boyan-apostolov/labdockeroverview-agent:latest"
+IMAGE="bobby156/labdockeroverview-agent:latest"
 INTERVAL="12"
 
 usage() {

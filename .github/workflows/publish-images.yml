@@ -11,15 +11,11 @@ on:
   workflow_dispatch: {}
 
 env:
-  REGISTRY: ghcr.io
-  OWNER: boyan-apostolov
+  DOCKERHUB_USER: bobby156
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -29,9 +25,8 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push agent image
         uses: docker/build-push-action@v6
@@ -40,8 +35,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/labdockeroverview-agent:latest
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/labdockeroverview-agent:${{ github.sha }}
+            ${{ env.DOCKERHUB_USER }}/labdockeroverview-agent:latest
+            ${{ env.DOCKERHUB_USER }}/labdockeroverview-agent:${{ github.sha }}
 
       - name: Build and push server image
         uses: docker/build-push-action@v6
@@ -51,5 +46,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/labdockeroverview-dashboard:latest
-            ${{ env.REGISTRY }}/${{ env.OWNER }}/labdockeroverview-dashboard:${{ github.sha }}
+            ${{ env.DOCKERHUB_USER }}/labdockeroverview-dashboard:latest
+            ${{ env.DOCKERHUB_USER }}/labdockeroverview-dashboard:${{ github.sha }}

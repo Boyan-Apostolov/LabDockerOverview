@@ -48,14 +48,19 @@ the right address to put in it — see below) and lets you manage registered hos
 
 ## Quick Start
 
-1. Start the server:
+1. Start the server — no cloning required, pulls the pre-built image straight from Docker Hub:
 
    ```sh
-   docker compose up -d
+   mkdir -p ./data
+   docker run -d -p 8080:8080 -v ./data:/data --restart unless-stopped --name labdockeroverview bobby156/labdockeroverview-dashboard
    ```
 
    The dashboard is now at `http://<this-host>:8080`. Data persists in `./data`. First visit
    prompts you to set an admin password.
+
+   Prefer building from source, or want the `network_mode: host` tweak for exact LAN-IP
+   auto-detection on Linux (see the note below)? Clone the repo and run `docker compose up -d`
+   instead — same result, just built locally rather than pulled.
 
 2. Go to the Settings page in the dashboard, add a host, and copy the generated one-line
    install command. It looks like:
@@ -69,12 +74,6 @@ the right address to put in it — see below) and lets you manage registered hos
    auto-detected (falls back to asking you to set it explicitly in Settings if it can only see a
    Docker-internal address, e.g. behind Docker Desktop's bridge network) — on Linux, uncommenting
    `network_mode: host` in `docker-compose.yml` makes that detection exact.
-
-The server itself can also be run directly without cloning the repo:
-
-```sh
-docker run -d -p 8080:8080 -v ./data:/data --name labdockeroverview bobby156/labdockeroverview-dashboard
-```
 
 Both images are built for `linux/amd64` and `linux/arm64` (Raspberry Pi, ARM-based Proxmox
 setups, etc.) and published automatically on every push to `main` via GitHub Actions.

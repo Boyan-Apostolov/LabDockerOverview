@@ -4,7 +4,7 @@
 
 set -e
 
-IMAGE="labdockeroverview-agent:latest"
+IMAGE="ghcr.io/boyan-apostolov/labdockeroverview-agent:latest"
 INTERVAL="12"
 
 usage() {
@@ -44,13 +44,6 @@ fi
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "Error: docker is not installed or not on PATH. Install Docker first: https://docs.docker.com/engine/install/" >&2
-    exit 1
-fi
-
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-    echo "Note: image '$IMAGE' not found locally. Until a published image is available," >&2
-    echo "build it yourself from the labdockeroverview repo, e.g.:" >&2
-    echo "  git clone <repo-url> && cd labdockeroverview/agent && docker build -t $IMAGE ." >&2
     exit 1
 fi
 
